@@ -13,7 +13,7 @@ export ZSH=/usr/share/oh-my-zsh/
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 # if you installed the package oh-my-zsh-powerline-theme-git then you type here "powerline" as zsh theme
-ZSH_THEME="mlh"
+ZSH_THEME="random"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -137,23 +137,34 @@ fi
 #CLG Added#
 
 #Screen Layouts
-#alias S1='/home/clg/.screenlayout/lg.sh'
-#alias S2='/home/clg/.screenlayout/phillandacer.sh'
+alias S1='/home/clg/.screenlayout/s1.sh'
+#alias S2='/home/clg/.screenlayout/s2.sh'
 #alias S3='/home/clg/.screenlayout/phillandacerhouse.sh'
-#alias s1='/home/clg/.screenlayout/justacer.sh'
-#alias s2='/home/clg/.screenlayout/phillandacer.sh'
+alias s1='/home/clg/.screenlayout/s1.sh'
+#alias s2='/home/clg/.screenlayout/s2.sh'
 #alias s3='/home/clg/.screenlayout/phillandacerhouse.sh'
-#alias s1o='/home/clg/.screenlayout/justacer.sh'
-#alias s2o='/home/clg/.screenlayout/justphil.sh'
+alias s1o='/home/clg/.screenlayout/s1.sh'
+#alias s2o='/home/clg/.screenlayout/s2o.sh'
 #alias s3o='/home/clg/.screenlayout/justhouse.sh'
 #alias s3l='/home/clg/.screenlayout/acerphilhouselong.sh'
 #alias S3L='/home/clg/.screenlayout/acerphilhouselong.sh'
-alias S2L='/home/clg/.screenlayout/longhouse.sh'
-alias SL2='/home/clg/.screenlayout/longhouse.sh'
-alias s2l='/home/clg/.screenlayout/longhouse.sh'
-alias sl2='/home/clg/.screenlayout/longhouse.sh'
-alias S2='/home/clg/.screenlayout/lghouse.sh'
-alias s2='/home/clg/.screenlayout/lghouse.sh'
+alias S2PL='/home/clg/.screenlayout/s2pl.sh'
+alias SPL2='/home/clg/.screenlayout/s2pl.sh'
+alias s2pl='/home/clg/.screenlayout/s2pl.sh'
+alias spl2='/home/clg/.screenlayout/s2pl.sh'
+alias S2PR='/home/clg/.screenlayout/s2pr.sh'
+alias SPR2='/home/clg/.screenlayout/s2pr.sh'
+alias s2pr='/home/clg/.screenlayout/s2pr.sh'
+alias spr2='/home/clg/.screenlayout/s2pr.sh'
+alias S2='/home/clg/.screenlayout/s2.sh'
+alias s2='/home/clg/.screenlayout/s2.sh'
+alias s2lo='/home/clg/.screenlayout/s2opl.sh'
+alias s2ro='/home/clg/.screenlayout/s2opr.sh'
+alias s2o='/home/clg/.screenlayout/s2o.sh'
+alias S2LO='/home/clg/.screenlayout/s2opl.sh'
+alias S2RO='/home/clg/.screenlayout/s2opr.sh'
+alias S2O='/home/clg/.screenlayout/s2opr.sh'
+alias s2w='/home/clg/.screenlayout/s2o.sh'
 
 #Screen Brightness
 alias sb2='xrandr --output HDMI-0 --brightness'
@@ -184,14 +195,96 @@ alias ..="cd .."
 
 alias sp="speedtest++"
 
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+
+ripapk() {
+    local keyword="$1"
+    if [ -z "$keyword" ]; then
+        echo "Usage: ripapk <keyword>"
+        return 1
+    fi
+
+    echo "Searching for packages matching '$keyword'..."
+    
+    # Zsh-native array assignment (handles newlines safely and removes carriage returns)
+    local -a packages
+    packages=( ${(f)"$(adb shell pm list packages | grep "$keyword" | cut -d':' -f2 | sort | tr -d '\r')"} )
+
+    # Check if any packages were found
+    if [ ${#packages[@]} -eq 0 ] || [ -z "${packages[1]}" ]; then
+        echo "No packages found matching '$keyword'."
+        return 1
+    fi
+
+    # Display chronological list to the user
+    echo ""
+    for i in {1..${#packages[@]}}; do
+        printf " [%d] %s\n" "$i" "${packages[$i]}"
+    done
+    echo ""
+
+    # Prompt user for selection
+    local selection
+    read -r "selection?Enter the number of the app you want to pull (1-${#packages[@]}): "
+
+    # Validate the user input selection
+    if [[ ! "$selection" =~ ^[0-9]+$ ]] || (( selection < 1 )) || (( selection > ${#packages[@]} )); then
+        echo "Invalid selection. Aborting."
+        return 1
+    fi
+
+    # Get chosen package name (Zsh arrays are 1-indexed)
+    local chosen_pkg="${packages[$selection]}"
+    echo "Selected: $chosen_pkg"
+
+    # Get the APK file path on the device
+    local apk_path
+    apk_path=$(adb shell pm path "$chosen_pkg" | head -n 1 | cut -d':' -f2 | tr -d '\r')
+
+    if [ -z "$apk_path" ]; then
+        echo "Error: Could not retrieve APK path for $chosen_pkg."
+        return 1
+    fi
+
+    # Define clean output file name using the user's exact keyword
+    local out_name="${keyword}.apk"
+
+    # Pull the file to the current working directory
+    echo "Pulling APK..."
+    adb pull "$apk_path" "./$out_name"
+    echo "Successfully saved as: ./$out_name"
+}
+
+
+
 #CLG Ended
 
 #list
-#alias ls='ls --color=auto'
+alias ls='ls --color=auto'
 alias la='ls -a'
 alias ll='ls -alFh'
 alias l='ls'
 alias l.="ls -A | egrep '^\.'"
+alias listdir="ls -d */ > list"
+
+#pacman
+alias sps='sudo pacman -S'
+alias spr='sudo pacman -R'
+alias sprs='sudo pacman -Rs'
+alias sprdd='sudo pacman -Rdd'
+alias spqo='sudo pacman -Qo'
+alias spsii='sudo pacman -Sii'
+
+# show the list of packages that need this package - depends mpv as example
+function_depends()  {
+    search=$(echo "$1")
+    sudo pacman -Sii $search | grep "Required" | sed -e "s/Required By     : //g" | sed -e "s/  /\n/g"
+    }
+
+alias depends='function_depends'
 
 #fix obvious typo's
 alias cd..='cd ..'
@@ -245,10 +338,12 @@ alias merge="xrdb -merge ~/.Xresources"
 # pacman
 alias pacman="sudo pacman --color auto"
 alias update="sudo pacman -Syyu"
+alias upd="sudo pacman -Syyu"
 
 # paru as aur helper - updates everything
 alias pksyua="paru -Syu --noconfirm"
 alias upall="paru -Syu --noconfirm"
+alias upa="paru -Syu --noconfirm"
 
 #ps
 alias psa="ps auxf"
@@ -256,6 +351,9 @@ alias psgrep="ps aux | grep -v grep | grep -i -e VSZ -e"
 
 #grub update
 alias update-grub="sudo grub-mkconfig -o /boot/grub/grub.cfg"
+alias grub-update="sudo grub-mkconfig -o /boot/grub/grub.cfg"
+#grub issue 08/2022
+alias install-grub-efi="sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ArcoLinux"
 
 #add new fonts
 alias update-fc='sudo fc-cache -fv'
@@ -276,12 +374,16 @@ alias tobash="sudo chsh $USER -s /bin/bash && echo 'Now log out.'"
 alias tozsh="sudo chsh $USER -s /bin/zsh && echo 'Now log out.'"
 alias tofish="sudo chsh $USER -s /bin/fish && echo 'Now log out.'"
 
-#switch between lightdm and sddm
+#switch between displaymanager or bootsystem
+alias toboot="sudo /usr/local/bin/arcolinux-toboot"
+alias togrub="sudo /usr/local/bin/arcolinux-togrub"
+alias torefind="sudo /usr/local/bin/arcolinux-torefind"
 alias tolightdm="sudo pacman -S lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings --noconfirm --needed ; sudo systemctl enable lightdm.service -f ; echo 'Lightm is active - reboot now'"
 alias tosddm="sudo pacman -S sddm --noconfirm --needed ; sudo systemctl enable sddm.service -f ; echo 'Sddm is active - reboot now'"
 alias toly="sudo pacman -S ly --noconfirm --needed ; sudo systemctl enable ly.service -f ; echo 'Ly is active - reboot now'"
 alias togdm="sudo pacman -S gdm --noconfirm --needed ; sudo systemctl enable gdm.service -f ; echo 'Gdm is active - reboot now'"
 alias tolxdm="sudo pacman -S lxdm --noconfirm --needed ; sudo systemctl enable lxdm.service -f ; echo 'Lxdm is active - reboot now'"
+alias toemptty="sudo pacman -S emptty --noconfirm --needed ; sudo systemctl enable emptty.service -f ; echo 'Emptty is active - reboot now'"
 
 # kill commands
 # quickly kill conkies
@@ -291,19 +393,28 @@ alias kp='killall polybar'
 # quickly kill picom
 alias kpi='killall picom'
 
-#hardware info --short
+# hardware info --short
 alias hw="hwinfo --short"
 
-#audio check pulseaudio or pipewire
+# fastfetch --short
+alias ff="fastfetch"
+
+# audio check pulseaudio or pipewire
 alias audio="pactl info | grep 'Server Name'"
 
-#skip integrity check
+# skip integrity check
 alias paruskip='paru -S --mflags --skipinteg'
 alias yayskip='yay -S --mflags --skipinteg'
 alias trizenskip='trizen -S --skipinteg'
 
-#check vulnerabilities microcode
+# check vulnerabilities microcode
 alias microcode='grep . /sys/devices/system/cpu/vulnerabilities/*'
+
+#approximation of how old your hardware is
+alias howold="sudo lshw | grep -B 3 -A 8 BIOS"
+
+#check cpu
+alias cpu="cpuid -i | grep uarch | head -n 1"
 
 #get fastest mirrors in your neighborhood
 alias mirror="sudo reflector -f 30 -l 30 --number 10 --verbose --save /etc/pacman.d/mirrorlist"
@@ -342,8 +453,6 @@ alias ytv-best="yt-dlp -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+besta
 #Recent Installed Packages
 alias rip="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -200 | nl"
 alias riplong="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -3000 | nl"
-alias longrip="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -3000 | nl"
-
 
 #iso and version used to install ArcoLinux
 alias iso="cat /etc/dev-rel | awk -F '=' '/ISO/ {print $2}'"
@@ -352,8 +461,21 @@ alias isoo="cat /etc/dev-rel"
 #Cleanup orphaned packages
 alias cleanup='sudo pacman -Rns $(pacman -Qtdq)'
 
+# This will generate a list of explicitly installed packages
+alias list="sudo pacman -Qqe"
+#This will generate a list of explicitly installed packages without dependencies
+alias listt="sudo pacman -Qqet"
+# list of AUR packages
+alias listaur="sudo pacman -Qqem"
+# add > list at the end to write to a file
+
+# install packages from list
+# pacman -S --needed - < my-list-of-packages.txt
+
 #clear
 alias clean="clear; seq 1 $(tput cols) | sort -R | sparklines | lolcat"
+alias cls="clear; seq 1 $(tput cols) | sort -R | sparklines | lolcat"
+
 
 #search content with ripgrep
 alias rg="rg --sort path"
@@ -368,27 +490,48 @@ alias nlightdm="sudo $EDITOR /etc/lightdm/lightdm.conf"
 alias npacman="sudo $EDITOR /etc/pacman.conf"
 alias ngrub="sudo $EDITOR /etc/default/grub"
 alias nconfgrub="sudo $EDITOR /boot/grub/grub.cfg"
+alias nmakepkg="sudo $EDITOR /etc/makepkg.conf"
 alias nmkinitcpio="sudo $EDITOR /etc/mkinitcpio.conf"
 alias nmirrorlist="sudo $EDITOR /etc/pacman.d/mirrorlist"
 alias narcomirrorlist="sudo $EDITOR /etc/pacman.d/arcolinux-mirrorlist"
 alias nsddm="sudo $EDITOR /etc/sddm.conf"
 alias nsddmk="sudo $EDITOR /etc/sddm.conf.d/kde_settings.conf"
+alias nsddmd="sudo $EDITOR /usr/lib/sddm/sddm.conf.d/default.conf"
 alias nfstab="sudo $EDITOR /etc/fstab"
 alias nnsswitch="sudo $EDITOR /etc/nsswitch.conf"
 alias nsamba="sudo $EDITOR /etc/samba/smb.conf"
 alias ngnupgconf="sudo $EDITOR /etc/pacman.d/gnupg/gpg.conf"
 alias nhosts="sudo $EDITOR /etc/hosts"
 alias nhostname="sudo $EDITOR /etc/hostname"
+alias nresolv="sudo $EDITOR /etc/resolv.conf"
 alias nb="$EDITOR ~/.bashrc"
 alias nz="$EDITOR ~/.zshrc"
 alias nf="$EDITOR ~/.config/fish/config.fish"
 alias nneofetch="$EDITOR ~/.config/neofetch/config.conf"
+alias nfastfetch="$EDITOR ~/.config/fastfetch/config.jsonc"
+alias nplymouth="sudo $EDITOR /etc/plymouth/plymouthd.conf"
+alias nvconsole="sudo $EDITOR /etc/vconsole.conf"
+alias nenvironment="sudo $EDITOR /etc/environment"
+alias nloader="sudo $EDITOR /boot/efi/loader/loader.conf"
+alias nrefind="sudo $EDITOR /boot/refind_linux.conf"
+alias nalacritty="nano /home/$USER/.config/alacritty/alacritty.toml"
+alias nemptty="sudo $EDITOR /etc/emptty/conf"
+alias nkitty="$EDITOR ~/.config/kitty/kitty.conf"
+
+#removing packages
+alias rvariety="arcolinux-remove-variety"
+alias rkmix="arcolinux-remove-kmix"
+alias rconky="arcolinux-remove-conky"
 
 #reading logs with bat
 alias lcalamares="bat /var/log/Calamares.log"
 alias lpacman="bat /var/log/pacman.log"
 alias lxorg="bat /var/log/Xorg.0.log"
 alias lxorgo="bat /var/log/Xorg.0.log.old"
+
+#reading logs with sublime-text-4
+alias scal="subl /var/log/Calamares.log"
+alias spac="subl /etc/pacman.conf"
 
 #gpg
 #verify signature for isos
@@ -412,6 +555,10 @@ alias fix-keys="/usr/local/bin/arcolinux-fix-pacman-databases-and-keys"
 #alias fix-sddm-config="/usr/local/bin/arcolinux-fix-sddm-config"
 alias fix-pacman-conf="/usr/local/bin/arcolinux-fix-pacman-conf"
 alias fix-pacman-keyserver="/usr/local/bin/arcolinux-fix-pacman-gpg-conf"
+alias fix-grub="sudo /usr/local/bin/arcolinux-fix-grub"
+alias fixgrub="sudo /usr/local/bin/arcolinux-fix-grub"
+alias fix-archlinux-mirrors="/usr/local/bin/arcolinux-fix-archlinux-servers"
+alias fix-arcolinux-mirrors="/usr/local/bin/arcolinux-fix-arcolinux-servers"
 
 #maintenance
 alias big="expac -H M '%m\t%n' | sort -h | nl"
@@ -422,18 +569,26 @@ alias downgrada="sudo downgrade --ala-url https://ant.seedhost.eu/arcolinux/"
 alias unhblock="hblock -S none -D none"
 
 #systeminfo
-alias probe="sudo -E hw-probe -all -upload"
+alias probe="sudo arcolinux-probe"
 alias sysfailed="systemctl list-units --failed"
 
 #shutdown or reboot
 alias ssn="sudo shutdown now"
-alias sr="sudo reboot"
+alias sr="reboot"
 
 #update betterlockscreen images
 alias bls="betterlockscreen -u /usr/share/backgrounds/arcolinux/"
 
 #give the list of all installed desktops - xsessions desktops
 alias xd="ls /usr/share/xsessions"
+alias xdw="ls /usr/share/wayland-sessions"
+
+#give a list of the kernels installed
+alias kernel="ls /usr/lib/modules"
+alias kernels="ls /usr/lib/modules"
+
+#am I on grub,systemd-boot or refind
+alias boot="sudo /usr/local/bin/arcolinux-boot"
 
 # # ex = EXtractor for all kinds of archives
 # # usage: ex <file>
@@ -461,6 +616,10 @@ ex ()
     echo "'$1' is not a valid file"
   fi
 }
+
+#wayland aliases
+alias wsimplescreen="wf-recorder -a"
+alias wsimplescreenrecorder="wf-recorder -a -c h264_vaapi -C aac -d /dev/dri/renderD128 --file=recording.mp4"
 
 #btrfs aliases
 alias btrfsfs="sudo btrfs filesystem df /"
@@ -493,8 +652,12 @@ alias atm="arcolinux-tellme"
 alias avs="arcolinux-vbox-share"
 alias awa="arcolinux-welcome-app"
 
-#remove
+#git
 alias rmgitcache="rm -r ~/.cache/git"
+alias grh="git reset --hard"
+
+#pamac
+alias pamac-unlock="sudo rm /var/tmp/pamac/dbs/db.lock"
 
 #moving your personal files and folders from /personal to ~
 alias personal='cp -Rf /personal/* ~'
@@ -505,7 +668,8 @@ alias personal='cp -Rf /personal/* ~'
 [[ -f ~/.zshrc-personal ]] && . ~/.zshrc-personal
 
 # reporting tools - install when not installed
-neofetch | lolcat
+fastfetch | lolcat
+#neofetch
 #screenfetch
 #alsi
 #paleofetch
@@ -518,4 +682,5 @@ neofetch | lolcat
 #sysinfo
 #sysinfo-retro
 #cpufetch
-colorscript random
+#colorscript random
+#hyfetch
